@@ -38,6 +38,8 @@ export const api = {
         update: (id: string, data: Partial<Part>) => request<Part>(`/inventory/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
         move: (id: string, data: { qty: number; destination: string; type: string }) =>
             request<any>(`/inventory/${id}/move`, { method: 'POST', body: JSON.stringify(data) }),
+        transfer: (id: string, qty: number, destination: string) =>
+            request<any>(`/inventory/${id}/move`, { method: 'POST', body: JSON.stringify({ qty, destination, type: 'transfer' }) }),
     },
     mos: {
         getAll: (status?: string, search?: string) => {
