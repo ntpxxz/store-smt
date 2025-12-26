@@ -28,7 +28,7 @@ export const BinDetailView: React.FC<BinDetailViewProps> = ({ selectedBin, selec
     const statusBorder = isEmpty ? 'border-brand-success/20' : isFull ? 'border-brand-error/20' : 'border-brand-blue/20';
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
             <Header
                 title={`Bin ${selectedBin}`}
                 subtitle="Location Storage"

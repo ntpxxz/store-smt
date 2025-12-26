@@ -1,65 +1,65 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
+import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
 
         const where: any = {};
+
         if (status && status !== 'all') {
             where.status = status;
         }
 
         const invoices = await prisma.inboundInvoice.findMany({
             where,
-            include: { items: true },
-            orderBy: { updatedAt: 'desc' },
+            include: {
+                items: true,
+            },
+            orderBy: { createdAt: 'desc' },
         });
 
-        return successResponse(invoices);
-    } catch (error: any) {
-        console.error('Inbound GET error:', error);
-        return errorResponse('Failed to fetch inbound invoices', 500);
+        return createResponse(invoices);
+    } catch (error) {
+        console.error('Get inbound error:', error);
+        return createErrorResponse('Failed to fetch inbound invoices', 500);
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
         const body = await request.json();
-        const { id, vendor, po, status, items } = body;
-
-        if (!id || !vendor || !po) {
-            return errorResponse('Missing required fields', 400);
-        }
 
         const invoice = await prisma.inboundInvoice.create({
             data: {
-                id,
-                vendor,
-                po,
-                status: status || 'pending',
+                id: body.id,
+                vendor: body.vendor,
+                po: body.po,
+                status: body.status || 'pending',
                 items: {
-                    create: items?.map((i: any) => ({
-                        name: i.name,
-                        sku: i.sku,
-                        qty: i.qty,
-                        unit: i.unit,
-                        received: false,
-                        receivedQty: 0,
-                    })),
+                    create: body.items || [],
                 },
             },
-            include: { items: true },
+            include: {
+                items: true,
+            },
         });
 
-        return successResponse(invoice, 201);
-    } catch (error: any) {
-        console.error('Inbound POST error:', error);
-        if (error.code === 'P2002') {
-            return errorResponse('Invoice ID already exists', 400);
-        }
-        return errorResponse('Failed to create inbound invoice', 500);
+        return createResponse(invoice, 201);
+    } catch (error) {
+        console.error('Create inbound error:', error);
+        return createErrorResponse('Failed to create inbound invoice', 500);
     }
 }

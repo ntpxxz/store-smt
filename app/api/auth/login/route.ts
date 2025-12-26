@@ -1,58 +1,68 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { comparePassword } from '@/lib/auth';
-import { generateTokenJose } from '@/lib/jose-auth';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import prisma from '@/lib/prisma';
+import { validateRequest, loginSchema } from '@/lib/validation';
+import { createResponse, createErrorResponse } from '@/lib/auth';
 
-export async function POST(request: Request) {
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+
+export async function POST(request: NextRequest) {
     try {
-        let body;
-        try {
-            body = await request.json();
-        } catch (jsonError) {
-            return errorResponse('Invalid JSON body', 400);
+        const body = await request.json();
+
+        // Validate request
+        const validation = validateRequest(loginSchema, body);
+        if (!validation.success) {
+            return createErrorResponse(validation.error, 400);
         }
 
-        const { email, password } = body;
+        const { email, password } = validation.data;
 
-        if (!email || !password) {
-            return errorResponse('Missing email or password', 400);
-        }
-
+        // Find user
         const user = await prisma.user.findUnique({
             where: { email },
         });
 
-        if (!user || !(await comparePassword(password, user.password))) {
-            return errorResponse('Invalid email or password', 401);
+        if (!user) {
+            return createErrorResponse('Invalid email or password', 401);
         }
 
-        const token = await generateTokenJose({
-            userId: user.id,
-            email: user.email,
-            role: user.role,
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+            return createErrorResponse('Invalid email or password', 401);
+        }
+
+        // Create JWT token
+        const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+            expiresIn: '7d',
         });
 
-        // Create session record
+        // Create session
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+
         await prisma.session.create({
             data: {
                 userId: user.id,
                 token,
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+                expiresAt,
             },
         });
 
-        return successResponse({
+        // Return user data and token
+        return createResponse({
+            token,
             user: {
                 id: user.id,
                 email: user.email,
                 name: user.name,
                 role: user.role,
             },
-            token,
         });
-    } catch (error: any) {
+    } catch (error) {
         console.error('Login error:', error);
-        return errorResponse('Internal server error', 500);
+        return createErrorResponse('Login failed', 500);
     }
 }

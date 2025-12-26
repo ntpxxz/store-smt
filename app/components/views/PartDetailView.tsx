@@ -18,7 +18,7 @@ export const PartDetailView: React.FC<PartDetailViewProps> = ({ activePart, setA
     const meta = getStatusMeta(activePart.status);
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
             <Header
                 title={activePart.sku}
                 subtitle="Part Details"

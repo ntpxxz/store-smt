@@ -1,78 +1,81 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
+import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
 
 export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    request: NextRequest,
+    { params }: { params: { id: string } }
 ) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
-        const { id } = await params;
         const part = await prisma.part.findUnique({
-            where: { id: id },
-            include: { movements: { orderBy: { date: 'desc' } } },
+            where: { id: params.id },
+            include: {
+                movements: {
+                    orderBy: { date: 'desc' },
+                },
+            },
         });
 
         if (!part) {
-            return errorResponse('Part not found', 404);
+            return createErrorResponse('Part not found', 404);
         }
 
-        return successResponse(part);
-    } catch (error: any) {
-        console.error('Inventory Item GET error:', error);
-        return errorResponse('Failed to fetch part', 500);
+        return createResponse(part);
+    } catch (error) {
+        console.error('Get part error:', error);
+        return createErrorResponse('Failed to fetch part', 500);
     }
 }
 
 export async function PUT(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    request: NextRequest,
+    { params }: { params: { id: string } }
 ) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
-        const { id } = await params;
         const body = await request.json();
-        const { name, qty, unit, status, icon, sku, location, locationStatus } = body;
 
         const part = await prisma.part.update({
-            where: { id: id },
+            where: { id: params.id },
             data: {
-                name,
-                qty: qty !== undefined ? Number(qty) : undefined,
-                unit,
-                status,
-                icon,
-                sku,
-                location,
-                locationStatus,
+                ...body,
+                updatedAt: new Date(),
             },
         });
 
-        return successResponse(part);
-    } catch (error: any) {
-        console.error('Inventory Item PUT error:', error);
-        if (error.code === 'P2025') {
-            return errorResponse('Part not found', 404);
-        }
-        return errorResponse('Failed to update part', 500);
+        return createResponse(part);
+    } catch (error) {
+        console.error('Update part error:', error);
+        return createErrorResponse('Failed to update part', 500);
     }
 }
 
 export async function DELETE(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    request: NextRequest,
+    { params }: { params: { id: string } }
 ) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
-        const { id } = await params;
         await prisma.part.delete({
-            where: { id: id },
+            where: { id: params.id },
         });
 
-        return successResponse({ message: 'Part deleted successfully' });
-    } catch (error: any) {
-        console.error('Inventory Item DELETE error:', error);
-        if (error.code === 'P2025') {
-            return errorResponse('Part not found', 404);
-        }
-        return errorResponse('Failed to delete part', 500);
+        return createResponse({ message: 'Part deleted successfully' });
+    } catch (error) {
+        console.error('Delete part error:', error);
+        return createErrorResponse('Failed to delete part', 500);
     }
 }

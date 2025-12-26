@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { playScannerSound } from '@/lib/audio';
+import { Html5Qrcode } from 'html5-qrcode';
 
 type ScanStatus = 'idle' | 'success' | 'error' | 'duplicate';
 
@@ -14,43 +15,58 @@ interface BarcodeScannerProps {
 }
 
 export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan, onError, title, subtitle, expectedValue, alreadyProcessed }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
     const [status, setStatus] = useState<ScanStatus>('idle');
     const [cameraError, setCameraError] = useState(false);
+    const scannerRef = useRef<Html5Qrcode | null>(null);
+    const [scannedResult, setScannedResult] = useState<string | null>(null);
 
     useEffect(() => {
-        let stream: MediaStream | null = null;
+        const scannerId = "barcode-reader";
         let isActive = true;
 
-        async function startCamera() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                setCameraError(true);
-                return;
-            }
+        const startScanner = async () => {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
+                const html5QrCode = new Html5Qrcode(scannerId);
+                scannerRef.current = html5QrCode;
+
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                };
+
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText) => {
+                        if (isActive) {
+                            handleScanResult(decodedText);
+                        }
+                    },
+                    (errorMessage) => {
+                        // Ignore frequent errors like "No barcode found"
+                    }
+                );
             } catch (err) {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                } catch (err2) {
-                    if (isActive) setCameraError(true);
-                }
+                console.error("Scanner start error:", err);
+                if (isActive) setCameraError(true);
             }
-            if (isActive && stream && videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.onloadedmetadata = () => videoRef.current?.play().catch(e => console.error(e));
+        };
+
+        startScanner();
+
+        return () => {
+            isActive = false;
+            if (scannerRef.current && scannerRef.current.isScanning) {
+                scannerRef.current.stop().catch(err => console.error("Scanner stop error:", err));
             }
-        }
-        startCamera();
-        return () => { isActive = false; if (stream) stream.getTracks().forEach(track => track.stop()); };
+        };
     }, []);
 
-    const handleTriggerScan = () => {
+    const handleScanResult = (scannedValue: string) => {
         if (status !== 'idle') return;
 
-        const isMockError = expectedValue && Math.random() < 0.2;
-        const scannedValue = isMockError ? "WRONG-SKU-" + Math.floor(Math.random() * 999) : (expectedValue || "SKU-AUTO-" + Math.floor(Math.random() * 1000));
-
+        setScannedResult(scannedValue);
         let newStatus: ScanStatus = 'success';
 
         if (expectedValue && scannedValue !== expectedValue) {
@@ -63,15 +79,27 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
         playScannerSound(newStatus);
 
         if (newStatus === 'success') {
+            // Stop scanning once success is found
+            if (scannerRef.current && scannerRef.current.isScanning) {
+                scannerRef.current.pause();
+            }
             setTimeout(() => onScan(scannedValue), 800);
         } else {
             setTimeout(() => {
                 setStatus('idle');
+                setScannedResult(null);
                 if (newStatus === 'error' && onError) {
                     onError(scannedValue);
                 }
-            }, 1000);
+            }, 1500);
         }
+    };
+
+    const handleSimulationScan = () => {
+        if (status !== 'idle') return;
+        const isMockError = expectedValue && Math.random() < 0.2;
+        const scannedValue = isMockError ? "WRONG-SKU-" + Math.floor(Math.random() * 999) : (expectedValue || "SKU-AUTO-" + Math.floor(Math.random() * 1000));
+        handleScanResult(scannedValue);
     };
 
     return (
@@ -88,17 +116,17 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
             </div>
 
             <div className="flex-1 relative flex items-center justify-center p-8">
-                <div className="relative w-full aspect-square max-w-[340px] bg-zinc-100 rounded-[40px] border-4 border-black/5 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.05)]" onClick={handleTriggerScan}>
-                    {!cameraError ? (
-                        <video ref={videoRef} autoPlay playsInline muted className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${status !== 'idle' ? 'opacity-20' : 'opacity-60'}`} />
-                    ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10 bg-zinc-200/50">
+                <div className="relative w-full aspect-square max-w-[340px] bg-zinc-100 rounded-[40px] border-4 border-black/5 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.05)]" onClick={handleSimulationScan}>
+                    <div id="barcode-reader" className="absolute inset-0 w-full h-full object-cover"></div>
+
+                    {cameraError && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10 bg-zinc-200/50 z-10">
                             <i className="fa-solid fa-video-slash text-app-text-muted text-4xl mb-4"></i>
                             <p className="text-[10px] text-app-text-muted uppercase font-semibold tracking-wider leading-relaxed">System Camera Offline<br />Tap to simulation scan</p>
                         </div>
                     )}
 
-                    <div className="absolute inset-0 border-[50px] border-white/60 pointer-events-none"></div>
+                    <div className="absolute inset-0 border-[50px] border-white/60 pointer-events-none z-20"></div>
 
                     {status === 'idle' && (
                         <div className="absolute left-10 right-10 h-1 bg-brand-primary shadow-[0_0_30px_rgba(124,58,237,0.5)] animate-scan z-20 rounded-full"></div>
@@ -110,6 +138,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
                                 <i className="fa-solid fa-check text-5xl text-brand-success"></i>
                             </div>
                             <span className="text-white font-bold text-xl uppercase tracking-wider mt-6">Match Found</span>
+                            <p className="text-white/80 text-sm mt-2 font-mono">{scannedResult}</p>
                         </div>
                     )}
 
@@ -119,6 +148,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
                                 <i className="fa-solid fa-xmark text-5xl text-brand-error"></i>
                             </div>
                             <span className="text-white font-bold text-xl uppercase tracking-wider mt-6">SKU Mismatch</span>
+                            <p className="text-white/80 text-sm mt-2 font-mono">{scannedResult}</p>
                         </div>
                     )}
 
@@ -128,14 +158,15 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
                                 <i className="fa-solid fa-clone text-5xl text-brand-orange"></i>
                             </div>
                             <span className="text-white font-bold text-xl uppercase tracking-wider mt-6">Already Scanned</span>
+                            <p className="text-white/80 text-sm mt-2 font-mono">{scannedResult}</p>
                         </div>
                     )}
 
                     {/* Corner Brackets */}
-                    <div className="absolute top-12 left-12 w-10 h-10 border-t-4 border-l-4 border-black/20 rounded-tl-lg"></div>
-                    <div className="absolute top-12 right-12 w-10 h-10 border-t-4 border-r-4 border-black/20 rounded-tr-lg"></div>
-                    <div className="absolute bottom-12 left-12 w-10 h-10 border-b-4 border-l-4 border-black/20 rounded-bl-lg"></div>
-                    <div className="absolute bottom-12 right-12 w-10 h-10 border-b-4 border-r-4 border-black/20 rounded-br-lg"></div>
+                    <div className="absolute top-12 left-12 w-10 h-10 border-t-4 border-l-4 border-black/20 rounded-tl-lg z-20"></div>
+                    <div className="absolute top-12 right-12 w-10 h-10 border-t-4 border-r-4 border-black/20 rounded-tr-lg z-20"></div>
+                    <div className="absolute bottom-12 left-12 w-10 h-10 border-b-4 border-l-4 border-black/20 rounded-bl-lg z-20"></div>
+                    <div className="absolute bottom-12 right-12 w-10 h-10 border-b-4 border-r-4 border-black/20 rounded-br-lg z-20"></div>
                 </div>
             </div>
 
@@ -147,6 +178,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
                 </div>
             </div>
         </div>
-
     );
 };
+

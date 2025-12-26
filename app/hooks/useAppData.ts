@@ -28,8 +28,19 @@ export const useAppData = (isAuthenticated: boolean) => {
             setMoList(mosData);
             setInbound(inbData);
             setAiInsight(insightData.insight);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Data fetch error:', err);
+
+            // Handle Unauthorized (Session expired or DB reset)
+            if (err.message === 'No authorization token provided' ||
+                err.message === 'Invalid or expired token' ||
+                err.message === 'Token expired' ||
+                err.message.includes('401')) {
+                localStorage.removeItem('auth_token');
+                window.location.reload(); // Force reload to login screen
+                return;
+            }
+
             setSysAlert({ message: 'Failed to sync with server', type: 'error' });
         } finally {
             setLoading(false);

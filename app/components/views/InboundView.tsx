@@ -19,7 +19,7 @@ export const InboundView: React.FC<InboundViewProps> = ({ inbound, inboundSubTab
         });
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
             <Header
                 title="Inbound"
                 subtitle="Receiving & Putaway"
@@ -43,7 +43,7 @@ export const InboundView: React.FC<InboundViewProps> = ({ inbound, inboundSubTab
                 {fltInb.map((inv) => (
                     <div
                         key={inv.id}
-                        onClick={() => { setActiveInbound(inv); setCurrentView(View.LOCATIONS); }}
+                        onClick={() => { setActiveInbound(inv); setCurrentView(View.INBOUND); }}
                         className="ios-card p-6 flex justify-between items-center active:scale-[0.98] transition-all cursor-pointer group hover:border-black/10"
                     >
                         <div className="flex items-center gap-5">

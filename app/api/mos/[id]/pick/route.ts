@@ -1,51 +1,63 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
+import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
+import { validateRequest, pickPartSchema } from '@/lib/validation';
 
 export async function POST(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    request: NextRequest,
+    { params }: { params: { id: string } }
 ) {
-    try {
-        const { id } = await params;
-        const body = await request.json();
-        const { bomItemId } = body;
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
 
-        if (!bomItemId) {
-            return errorResponse('Missing BOM Item ID', 400);
+    try {
+        const body = await request.json();
+
+        // Validate request
+        const validation = validateRequest(pickPartSchema, body);
+        if (!validation.success) {
+            return createErrorResponse(validation.error, 400);
         }
 
+        const { bomItemId } = validation.data;
+
+        // Update BOM item as picked and recalculate MO progress
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Update BOM item status
-            const updatedBomItem = await tx.bOMItem.update({
-                where: { id: bomItemId, moId: id },
+            // Mark BOM item as picked
+            const bomItem = await tx.bOMItem.update({
+                where: { id: bomItemId },
                 data: { picked: true },
             });
 
-            // 2. Calculate new progress for the MO
+            // Get all BOM items for this MO
             const allBomItems = await tx.bOMItem.findMany({
-                where: { moId: id },
+                where: { moId: params.id },
             });
 
-            const pickedCount = allBomItems.filter((i) => i.picked).length;
+            // Calculate progress
+            const pickedCount = allBomItems.filter(item => item.picked).length;
             const progress = Math.round((pickedCount / allBomItems.length) * 100);
 
-            // 3. Update MO progress
-            const updatedMO = await tx.productionOrder.update({
-                where: { id: id },
-                data: { progress },
-                include: { parts: true },
+            // Update MO progress and status
+            const mo = await tx.productionOrder.update({
+                where: { id: params.id },
+                data: {
+                    progress,
+                    status: progress === 100 ? 'completed' : 'scheduled',
+                },
+                include: {
+                    parts: true,
+                },
             });
 
-            return updatedMO;
+            return mo;
         });
 
-        return successResponse(result);
-    } catch (error: any) {
-        console.error('MO Pick error:', error);
-        if (error.code === 'P2025') {
-            return errorResponse('BOM Item or MO not found', 404);
-        }
-        return errorResponse('Failed to pick item', 500);
+        return createResponse(result);
+    } catch (error) {
+        console.error('Pick part error:', error);
+        return createErrorResponse('Failed to pick part', 500);
     }
 }

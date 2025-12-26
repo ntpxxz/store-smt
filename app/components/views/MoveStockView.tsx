@@ -19,7 +19,7 @@ export const MoveStockView: React.FC<MoveStockViewProps> = ({ activePart, transf
     const isInvalid = transferQty <= 0 || isExceeding || `Aisle ${destAisle}, Bin ${destBin}` === activePart.location;
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
             <Header
                 title={activePart.name}
                 subtitle="Stock Relocation"

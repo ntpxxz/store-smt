@@ -1,58 +1,80 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
+import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
+import { validateRequest, moveInventorySchema } from '@/lib/validation';
 
 export async function POST(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    request: NextRequest,
+    { params }: { params: { id: string } }
 ) {
-    try {
-        const { id } = await params;
-        const body = await request.json();
-        const { qty, source, destination, type } = body;
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
 
-        if (!qty || !destination || !type) {
-            return errorResponse('Missing required fields', 400);
+    try {
+        const body = await request.json();
+
+        // Validate request
+        const validation = validateRequest(moveInventorySchema, body);
+        if (!validation.success) {
+            return createErrorResponse(validation.error, 400);
         }
 
-        // Use a transaction to ensure both movement record and part update succeed
-        const result = await prisma.$transaction(async (tx) => {
-            const part = await tx.part.findUnique({
-                where: { id: id },
-            });
+        const { qty, destination, type } = validation.data;
 
-            if (!part) {
-                throw new Error('Part not found');
-            }
-
-            // Create movement record
-            const movement = await tx.movement.create({
-                data: {
-                    qty: Number(qty),
-                    source: source || part.location,
-                    destination,
-                    type,
-                    partId: id,
-                },
-            });
-
-            // Update part location and quantity if needed
-            const updatedPart = await tx.part.update({
-                where: { id: id },
-                data: {
-                    location: destination,
-                },
-            });
-
-            return { movement, updatedPart };
+        // Get current part
+        const part = await prisma.part.findUnique({
+            where: { id: params.id },
         });
 
-        return successResponse(result);
-    } catch (error: any) {
-        console.error('Inventory Move error:', error);
-        if (error.message === 'Part not found') {
-            return errorResponse('Part not found', 404);
+        if (!part) {
+            return createErrorResponse('Part not found', 404);
         }
-        return errorResponse('Failed to move part', 500);
+
+        // Check if enough quantity available
+        if (type === 'transfer' && part.qty < qty) {
+            return createErrorResponse('Insufficient quantity', 400);
+        }
+
+        // Create movement record and update part quantity
+        const result = await prisma.$transaction(async (tx) => {
+            // Create movement
+            const movement = await tx.movement.create({
+                data: {
+                    partId: params.id,
+                    qty,
+                    source: part.location,
+                    destination,
+                    type,
+                },
+            });
+
+            // Update part quantity and location
+            let newQty = part.qty;
+            if (type === 'transfer') {
+                newQty = part.qty - qty;
+            } else if (type === 'inbound') {
+                newQty = part.qty + qty;
+            } else if (type === 'adjustment') {
+                newQty = qty; // Direct adjustment
+            }
+
+            const updatedPart = await tx.part.update({
+                where: { id: params.id },
+                data: {
+                    qty: newQty,
+                    location: type === 'transfer' ? destination : part.location,
+                    status: newQty === 0 ? 'critical' : newQty < 10 ? 'low' : 'normal',
+                },
+            });
+
+            return { movement, part: updatedPart };
+        });
+
+        return createResponse(result);
+    } catch (error) {
+        console.error('Move inventory error:', error);
+        return createErrorResponse('Failed to move inventory', 500);
     }
 }

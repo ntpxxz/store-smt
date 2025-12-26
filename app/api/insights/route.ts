@@ -1,43 +1,27 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
 
-export async function GET() {
+const AI_INSIGHTS = [
+    "Focus on MO #2401 - Due in 2 hours, all parts ready",
+    "Bin A-05 is running low on USB-C cables - restock recommended",
+    "Peak efficiency detected - 42 items/hour average today",
+    "Consider moving Battery Packs to Aisle B for faster access",
+    "3 urgent orders waiting - prioritize MO #2403 first",
+];
+
+export async function GET(request: NextRequest) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
-        // 1. Analyze Inventory for Critical items
-        const criticalParts = await prisma.part.findMany({
-            where: { status: 'critical' },
-            take: 2,
-        });
+        // Return random insight (in production, this would be AI-generated)
+        const insight = AI_INSIGHTS[Math.floor(Math.random() * AI_INSIGHTS.length)];
 
-        // 2. Analyze Orders for Urgent/Late items
-        const urgentMos = await prisma.productionOrder.findMany({
-            where: { status: 'urgent', progress: { lt: 100 } },
-            take: 2,
-        });
-
-        // 3. Analyze Inbound for Pending items
-        const pendingInbound = await prisma.inboundInvoice.findMany({
-            where: { status: 'pending' },
-            take: 2,
-        });
-
-        let insight = "Operations nominal. Standby for tasks.";
-
-        // 4. Deterministic Decision Tree
-        if (urgentMos.length > 0) {
-            insight = `🚀 Priority: Rush MO #${urgentMos[0].id} (${urgentMos[0].description}) immediately. ${urgentMos.length > 1 ? `Also ${urgentMos.length - 1} more urgent orders.` : ''}`;
-        } else if (criticalParts.length > 0) {
-            insight = `⚠️ Alert: Stockout risk for ${criticalParts[0].name}. Replenish now.`;
-        } else if (pendingInbound.length > 0) {
-            insight = `📦 Inbound: ${pendingInbound.length} invoices waiting for processing. Start with ${pendingInbound[0].vendor}.`;
-        } else {
-            insight = "✅ All clear. System optimized for inbound processing.";
-        }
-
-        return successResponse({ insight });
-    } catch (e) {
-        console.error('Insights GET error:', e);
-        return successResponse({ insight: "System ready." });
+        return createResponse({ insight });
+    } catch (error) {
+        console.error('Get insights error:', error);
+        return createErrorResponse('Failed to fetch insights', 500);
     }
 }

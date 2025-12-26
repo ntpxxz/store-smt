@@ -1,27 +1,34 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { hashPassword, generateToken } from '@/lib/auth';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import bcrypt from 'bcryptjs';
+import prisma from '@/lib/prisma';
+import { validateRequest, registerSchema } from '@/lib/validation';
+import { createResponse, createErrorResponse } from '@/lib/auth';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { email, password, name, role } = body;
 
-        if (!email || !password || !name) {
-            return errorResponse('Missing required fields', 400);
+        // Validate request
+        const validation = validateRequest(registerSchema, body);
+        if (!validation.success) {
+            return createErrorResponse(validation.error, 400);
         }
 
+        const { email, password, name, role } = validation.data;
+
+        // Check if user already exists
         const existingUser = await prisma.user.findUnique({
             where: { email },
         });
 
         if (existingUser) {
-            return errorResponse('Email already registered', 400);
+            return createErrorResponse('User with this email already exists', 409);
         }
 
-        const hashedPassword = await hashPassword(password);
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Create user
         const user = await prisma.user.create({
             data: {
                 email,
@@ -31,23 +38,16 @@ export async function POST(request: Request) {
             },
         });
 
-        const token = generateToken({
-            userId: user.id,
-            email: user.email,
-            role: user.role,
-        });
-
-        return successResponse({
+        return createResponse({
             user: {
                 id: user.id,
                 email: user.email,
                 name: user.name,
                 role: user.role,
             },
-            token,
         }, 201);
-    } catch (error: any) {
+    } catch (error) {
         console.error('Registration error:', error);
-        return errorResponse('Internal server error', 500);
+        return createErrorResponse('Registration failed', 500);
     }
 }

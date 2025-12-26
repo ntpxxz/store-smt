@@ -1,73 +1,78 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse } from '@/lib/api-response';
+import { NextRequest } from 'next/server';
+import prisma from '@/lib/prisma';
+import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
         const search = searchParams.get('search');
 
         const where: any = {};
+
         if (status && status !== 'all') {
             where.status = status;
         }
+
         if (search) {
             where.OR = [
                 { id: { contains: search, mode: 'insensitive' } },
                 { description: { contains: search, mode: 'insensitive' } },
-                { line: { contains: search, mode: 'insensitive' } },
             ];
         }
 
         const mos = await prisma.productionOrder.findMany({
             where,
-            include: { parts: true },
-            orderBy: { updatedAt: 'desc' },
+            include: {
+                parts: true,
+            },
+            orderBy: [
+                { status: 'asc' }, // urgent first
+                { createdAt: 'desc' },
+            ],
         });
 
-        return successResponse(mos);
-    } catch (error: any) {
-        console.error('MOs GET error:', error);
-        return errorResponse('Failed to fetch production orders', 500);
+        return createResponse(mos);
+    } catch (error) {
+        console.error('Get MOs error:', error);
+        return createErrorResponse('Failed to fetch production orders', 500);
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+    const authResult = await verifyAuth(request);
+    if ('error' in authResult) {
+        return createErrorResponse(authResult.error, authResult.status);
+    }
+
     try {
         const body = await request.json();
-        const { id, status, line, description, dueTime, parts } = body;
-
-        if (!id || !line || !description) {
-            return errorResponse('Missing required fields', 400);
-        }
 
         const mo = await prisma.productionOrder.create({
             data: {
-                id,
-                status: status || 'ready',
-                line,
-                description,
-                dueTime,
-                progress: 0,
+                id: body.id,
+                status: body.status,
+                line: body.line,
+                description: body.description,
+                dueTime: body.dueTime,
+                progress: body.progress || 0,
                 parts: {
-                    create: parts?.map((p: any) => ({
-                        name: p.name,
-                        requiredQty: p.requiredQty,
-                        unit: p.unit,
-                        picked: false,
-                    })),
+                    create: body.parts || [],
                 },
             },
-            include: { parts: true },
+            include: {
+                parts: true,
+            },
         });
 
-        return successResponse(mo, 201);
-    } catch (error: any) {
-        console.error('MOs POST error:', error);
-        if (error.code === 'P2002') {
-            return errorResponse('MO ID already exists', 400);
-        }
-        return errorResponse('Failed to create production order', 500);
+        return createResponse(mo, 201);
+    } catch (error) {
+        console.error('Create MO error:', error);
+        return createErrorResponse('Failed to create production order', 500);
     }
 }

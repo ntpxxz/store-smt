@@ -24,7 +24,7 @@ interface MenuViewProps {
 
 export const MenuView: React.FC<MenuViewProps> = ({ setCurrentView, onLogout, darkMode, setDarkMode, soundEnabled, setSoundEnabled, hapticEnabled, setHapticEnabled, autoScan, setAutoScan, showHelp, setShowHelp, language, setLanguage, onNavigateToMap }) => {
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
             <Header
                 title="Settings"
                 subtitle="System Preferences"

@@ -16,7 +16,7 @@ export const MODetailView: React.FC<MODetailViewProps> = ({ activeMO, setActiveM
     const totParts = activeMO.parts.length;
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
             <Header
                 title={`MO #${activeMO.id}`}
                 subtitle="Order Checklist"

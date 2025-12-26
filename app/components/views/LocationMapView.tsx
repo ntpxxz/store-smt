@@ -16,7 +16,7 @@ export const LocationMapView: React.FC<LocationMapViewProps> = ({ selectedAisle,
     const bins = [1, 2, 3, 4, 5, 6, 7, 8];
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
             <Header
                 title="Warehouse Map"
                 subtitle="Location Explorer"
