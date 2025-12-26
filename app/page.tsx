@@ -67,7 +67,7 @@ const App: React.FC = () => {
   const [inboundSubTab, setInboundSubTab] = useState<'all' | 'pending' | 'received'>('all');
 
   // Settings State
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [autoScan, setAutoScan] = useState(true);
@@ -179,12 +179,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleQuickRelocate = () => {
-    // Logic for quick relocate FAB
-    // Could open a modal or switch to a specific view
-    // For now, let's just go to Inventory
-    setCurrentView(View.INVENTORY);
-    setSysAlert({ message: 'Select a part to move', type: 'success' });
+
+
+  const handleNavigateToMap = () => {
+    setActiveInbound(null);
+    setSelectedBin(null);
+    setCurrentView(View.LOCATIONS);
   };
 
   // --- Render ---
@@ -196,8 +196,8 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-app-bg">
-        <div className="w-16 h-16 border-4 border-brand-primary/30 border-t-brand-primary rounded-full animate-spin mb-8"></div>
-        <h2 className="text-xl font-black text-app-text animate-pulse">Loading Warehouse OS...</h2>
+        <div className="w-16 h-16 border-4 border-brand-primary/10 border-t-brand-primary rounded-full animate-spin mb-8 shadow-[0_0_20px_rgba(124,58,237,0.1)]"></div>
+        <h2 className="text-xl font-bold text-app-text animate-pulse">Loading Warehouse OS...</h2>
       </div>
     );
   }
@@ -207,11 +207,11 @@ const App: React.FC = () => {
       case View.HOME:
         return <HomeView user={user} moList={moList} aiInsight={aiInsight} activityLog={activityLog} setCurrentView={setCurrentView} setSelectedBin={setSelectedBin} />;
       case View.INBOUND:
+        if (activeInbound) return <InboundDetailView activeInbound={activeInbound} setActiveInbound={setActiveInbound} setCurrentView={setCurrentView} openScanner={openScanner} handleReceiveItem={handleReceiveItem} />;
         return <InboundView inbound={inbound} inboundSubTab={inboundSubTab} setInboundSubTab={setInboundSubTab} setActiveInbound={setActiveInbound} setCurrentView={setCurrentView} />;
       case View.LOCATIONS:
-        if (activeInbound) return <InboundDetailView activeInbound={activeInbound} setActiveInbound={setActiveInbound} setCurrentView={setCurrentView} openScanner={openScanner} handleReceiveItem={handleReceiveItem} />;
         if (selectedBin) return <BinDetailView selectedBin={selectedBin} selectedAisle={selectedAisle} setSelectedBin={setSelectedBin} inventory={inventory} setActivePart={setActivePart} setCurrentView={setCurrentView} openScanner={openScanner} handleAssignPartToBin={handleAssignPartToBin} />;
-        return <LocationMapView selectedAisle={selectedAisle} setSelectedAisle={setSelectedAisle} setSelectedBin={setSelectedBin} inventory={inventory} />;
+        return <LocationMapView selectedAisle={selectedAisle} setSelectedAisle={setSelectedAisle} setSelectedBin={setSelectedBin} inventory={inventory} setCurrentView={setCurrentView} />;
       case View.MOVE_STOCK:
         return activePart ? <MoveStockView activePart={activePart} transferQty={transferQty} setTransferQty={setTransferQty} destAisle={destAisle} setDestAisle={setDestAisle} destBin={destBin} setDestBin={setDestBin} handleExecuteTransfer={handleExecuteTransfer} setCurrentView={setCurrentView} /> : null;
       case View.PICKING:
@@ -223,40 +223,44 @@ const App: React.FC = () => {
       case View.PART_DETAIL:
         return activePart ? <PartDetailView activePart={activePart} setActivePart={setActivePart} setCurrentView={setCurrentView} setTransferQty={setTransferQty} setDestAisle={setDestAisle} setDestBin={setDestBin} /> : null;
       case View.MENU:
-        return <MenuView setCurrentView={setCurrentView} onLogout={handleLogout} darkMode={darkMode} setDarkMode={setDarkMode} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticEnabled={hapticEnabled} setHapticEnabled={setHapticEnabled} autoScan={autoScan} setAutoScan={setAutoScan} showHelp={showHelp} setShowHelp={setShowHelp} language={language} setLanguage={setLanguage} />;
+        return <MenuView setCurrentView={setCurrentView} onLogout={handleLogout} darkMode={darkMode} setDarkMode={setDarkMode} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} hapticEnabled={hapticEnabled} setHapticEnabled={setHapticEnabled} autoScan={autoScan} setAutoScan={setAutoScan} showHelp={showHelp} setShowHelp={setShowHelp} language={language} setLanguage={setLanguage} onNavigateToMap={handleNavigateToMap} />;
       default:
         return <HomeView user={user} moList={moList} aiInsight={aiInsight} activityLog={activityLog} setCurrentView={setCurrentView} setSelectedBin={setSelectedBin} />;
     }
   };
 
   return (
-    <div className={`flex flex-col h-screen bg-app-bg text-app-text font-sans overflow-hidden selection:bg-brand-primary/30 ${darkMode ? 'dark' : ''}`}>
-      <StatusBar />
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className={`relative w-full max-w-md h-screen bg-app-bg text-app-text font-sans overflow-hidden selection:bg-brand-primary/30 shadow-2xl ${darkMode ? 'dark' : ''}`}>
 
-      {renderContent()}
+        <StatusBar />
 
-      <Navigation active={currentView} onSwitch={setCurrentView} onQuickRelocate={handleQuickRelocate} />
 
-      {/* Overlays */}
-      {prominentError && (
-        <ErrorModal title={prominentError.title} message={prominentError.message} onClose={() => setProminentError(null)} />
-      )}
+        {renderContent()}
 
-      {sysAlert && (
-        <SystemAlert message={sysAlert.message} type={sysAlert.type} onClose={() => setSysAlert(null)} />
-      )}
+        <Navigation active={currentView} onSwitch={setCurrentView} />
 
-      {scannerOpen && (
-        <BarcodeScanner
-          onClose={closeScanner}
-          onScan={scanContext.onComplete}
-          onError={scanContext.onError}
-          title={scanContext.title}
-          subtitle={scanContext.subtitle}
-          expectedValue={scanContext.expected}
-          alreadyProcessed={scanContext.alreadyProcessed}
-        />
-      )}
+        {/* Overlays */}
+        {prominentError && (
+          <ErrorModal title={prominentError.title} message={prominentError.message} onClose={() => setProminentError(null)} />
+        )}
+
+        {sysAlert && (
+          <SystemAlert message={sysAlert.message} type={sysAlert.type} onClose={() => setSysAlert(null)} />
+        )}
+
+        {scannerOpen && (
+          <BarcodeScanner
+            onClose={closeScanner}
+            onScan={scanContext.onComplete}
+            onError={scanContext.onError}
+            title={scanContext.title}
+            subtitle={scanContext.subtitle}
+            expectedValue={scanContext.expected}
+            alreadyProcessed={scanContext.alreadyProcessed}
+          />
+        )}
+      </div>
     </div>
   );
 };

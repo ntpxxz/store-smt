@@ -3,6 +3,7 @@ import { View, Part } from '@/lib/types';
 import { getStatusMeta } from '@/lib/utils';
 import { StockChart } from '@/app/components/ui/StockChart';
 import { LocationStatusTag } from '@/app/components/ui/LocationStatusTag';
+import { Header } from '@/app/components/ui/Header';
 
 interface PartDetailViewProps {
     activePart: Part;
@@ -17,35 +18,76 @@ export const PartDetailView: React.FC<PartDetailViewProps> = ({ activePart, setA
     const meta = getStatusMeta(activePart.status);
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter">
-            <div className="px-6 py-4 sticky top-0 glass z-20 flex items-center gap-4 border-b border-app-border text-app-text">
-                <button onClick={() => { setActivePart(null); setCurrentView(View.INVENTORY); }} className="w-10 h-10 rounded-[15px] bg-app-bg flex items-center justify-center border border-app-border active:bg-app-surface-hover transition-colors"><i className="fa-solid fa-arrow-left"></i></button>
-                <div><h3 className="font-bold text-[10px] text-brand-muted uppercase tracking-widest">Part Details</h3><h2 className="font-bold text-lg">{activePart.sku}</h2></div>
-            </div>
+        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
+            <Header
+                title={activePart.sku}
+                subtitle="Part Details"
+                onBack={() => { setActivePart(null); setCurrentView(View.INVENTORY); }}
+            />
+
             <div className="p-6">
-                <div className="bg-app-surface p-6 rounded-[20px] border border-app-border mb-8 shadow-sm relative overflow-hidden text-app-text">
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="w-16 h-16 bg-app-bg rounded-[18px] flex items-center justify-center text-3xl border border-app-border shadow-inner">{activePart.icon}</div>
-                        <div className={`px-3 py-1.5 rounded-[10px] flex items-center gap-2 ${meta.bg}`}><i className={`fa-solid ${meta.icon} ${meta.color} text-xs`}></i><span className={`text-[10px] font-black uppercase tracking-widest ${meta.text}`}>{activePart.status} Stock</span></div>
+                <div className="ios-card p-8 mb-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-black/5 rounded-bl-[4rem] -mr-8 -mt-8"></div>
+
+                    <div className="flex justify-between items-start mb-8 relative z-10">
+                        <div className="w-24 h-24 bg-black/5 rounded-[2rem] flex items-center justify-center text-5xl border border-app-border shadow-inner group-hover:scale-110 transition-transform duration-500">
+                            {activePart.icon}
+                        </div>
+                        <div className={`px-4 py-2 rounded-2xl flex items-center gap-2.5 ${meta.bg} border border-black/5 shadow-sm`}>
+                            <i className={`fa-solid ${meta.icon} ${meta.color} text-xs`}></i>
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider ${meta.text}`}>{activePart.status}</span>
+                        </div>
                     </div>
-                    <h1 className="text-2xl font-black mb-1 leading-tight">{activePart.name}</h1>
-                    <div className="flex items-center gap-3 mb-6">
-                        <p className="text-xs font-mono font-bold text-brand-muted tracking-wide">{activePart.sku}</p>
-                        <LocationStatusTag status={activePart.locationStatus} size="md" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-app-bg p-4 rounded-[15px] border border-app-border"><p className="text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1">On Hand</p><p className="text-2xl font-black text-app-text">{activePart.qty} <span className="text-xs font-bold text-brand-muted">{activePart.unit}</span></p></div>
-                        <div className="bg-app-bg p-4 rounded-[15px] border border-app-border"><p className="text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1">Location</p><p className="text-xl font-black text-brand-primary truncate">{activePart.location}</p></div>
+
+                    <div className="relative z-10">
+                        <h1 className="text-3xl font-bold mb-2 leading-tight text-app-text">{activePart.name}</h1>
+                        <div className="flex items-center gap-3 mb-8">
+                            <span className="text-[10px] font-semibold text-app-text-muted uppercase tracking-wider bg-black/5 px-3 py-1 rounded-full border border-app-border">
+                                {activePart.sku}
+                            </span>
+                            <LocationStatusTag status={activePart.locationStatus} size="md" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-black/5 p-5 rounded-[2rem] border border-app-border group hover:border-brand-primary/20 transition-colors">
+                                <p className="text-[9px] font-semibold text-app-text-muted uppercase tracking-wider mb-2">On Hand</p>
+                                <p className="text-3xl font-bold text-app-text">
+                                    {activePart.qty} <span className="text-sm font-medium text-app-text-muted ml-1">{activePart.unit}</span>
+                                </p>
+                            </div>
+                            <div className="bg-black/5 p-5 rounded-[2rem] border border-app-border group hover:border-brand-primary/20 transition-colors">
+                                <p className="text-[9px] font-semibold text-app-text-muted uppercase tracking-wider mb-2">Location</p>
+                                <div className="flex items-center gap-2">
+                                    <i className="fa-solid fa-location-dot text-[10px] text-brand-primary"></i>
+                                    <p className="text-sm font-bold text-brand-primary truncate">{activePart.location}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <StockChart part={activePart} />
+                <div className="ios-card p-6 mb-10">
+                    <StockChart part={activePart} />
+                </div>
 
-                <div className="mt-8 space-y-3">
-                    <button onClick={() => { setTransferQty(1); setDestAisle('A'); setDestBin('01'); setCurrentView(View.MOVE_STOCK); }} className="w-full bg-brand-primary text-white py-4 rounded-[15px] font-bold text-sm shadow-lg shadow-brand-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"><i className="fa-solid fa-dolly"></i> Move Stock</button>
-                    <button className="w-full bg-app-surface border border-app-border text-app-text py-4 rounded-[15px] font-bold text-sm active:bg-app-surface-hover transition-all flex items-center justify-center gap-2"><i className="fa-solid fa-rotate"></i> Adjust Quantity</button>
+                <div className="space-y-4">
+                    <button
+                        onClick={() => { setTransferQty(1); setDestAisle('A'); setDestBin('01'); setCurrentView(View.MOVE_STOCK); }}
+                        className="w-full gradient-primary text-white py-6 rounded-[2rem] font-bold text-xs uppercase tracking-wider shadow-2xl shadow-brand-primary/30 active:scale-95 transition-all flex items-center justify-center gap-3"
+                    >
+                        <i className="fa-solid fa-dolly text-sm"></i> Move Stock
+                    </button>
+                    <button
+                        className="w-full bg-black/5 border-2 border-app-border text-app-text py-6 rounded-[2rem] font-bold text-xs uppercase tracking-wider active:bg-black/10 transition-all flex items-center justify-center gap-3 shadow-sm"
+                    >
+                        <i className="fa-solid fa-rotate text-sm text-app-text-muted"></i> Adjust Quantity
+                    </button>
                 </div>
             </div>
+
         </div>
     );
 };
+
+
+

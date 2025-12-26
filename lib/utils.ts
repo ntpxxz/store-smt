@@ -40,6 +40,7 @@ export const getStatusMeta = (status: Part['status']) => {
         case 'low': return { icon: 'fa-circle-exclamation', color: 'text-brand-orange', bg: 'bg-brand-orange/10', text: 'text-brand-orange' };
         case 'normal': return { icon: 'fa-circle-check', color: 'text-brand-success', bg: 'bg-brand-success/10', text: 'text-brand-success' };
         case 'fast': return { icon: 'fa-bolt', color: 'text-brand-blue', bg: 'bg-brand-blue/10', text: 'text-brand-blue' };
-        default: return { icon: 'fa-circle', color: 'text-brand-muted', bg: 'bg-brand-muted/10', text: 'text-brand-muted' };
+        default: return { icon: 'fa-circle', color: 'text-app-text-muted', bg: 'bg-white/5', text: 'text-app-text-muted' };
     }
 };
+

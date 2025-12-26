@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, InboundInvoice } from '@/lib/types';
+import { Header } from '@/app/components/ui/Header';
 
 interface InboundViewProps {
     inbound: InboundInvoice[];
@@ -18,30 +19,55 @@ export const InboundView: React.FC<InboundViewProps> = ({ inbound, inboundSubTab
         });
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter">
-            <div className="px-6 py-4 sticky top-0 bg-app-surface/95 backdrop-blur z-20 border-b border-app-border text-app-text">
-                <h2 className="text-xl font-bold mb-4">Inbound Logistics</h2>
-                <div className="flex gap-2 overflow-x-auto no-scrollbar">{['all', 'pending', 'received'].map(f => <button key={f} onClick={() => setInboundSubTab(f as any)} className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${inboundSubTab === f ? 'bg-brand-primary border-brand-primary text-white shadow-lg' : 'bg-app-bg border-app-border text-brand-muted'}`}>{f}</button>)}</div>
-            </div>
-            <div className="p-6">
-                <div className="space-y-4">
-                    {fltInb.map((inv) => (
-                        <div key={inv.id} onClick={() => { setActiveInbound(inv); setCurrentView(View.LOCATIONS); }} className="bg-app-surface p-5 rounded-[15px] border border-app-border flex justify-between items-center hover:bg-app-surface-hover transition-all cursor-pointer shadow-sm group active:scale-95 text-app-text">
-                            <div className="flex items-center gap-5">
-                                <div className={`w-14 h-14 bg-app-bg rounded-[15px] flex items-center justify-center text-2xl shadow-inner border border-app-border group-hover:scale-105 transition-transform ${inv.status === 'completed' ? 'text-brand-success' : 'text-brand-muted'}`}><i className="fa-solid fa-truck-ramp-box"></i></div>
-                                <div>
-                                    <h4 className="font-black text-base leading-tight mb-1">{inv.id}</h4>
-                                    <div className="flex flex-col gap-1">
-                                        <p className="text-[10px] text-brand-muted font-black uppercase tracking-widest">{inv.vendor}</p>
-                                        <p className="text-[10px] text-brand-primary font-mono font-bold uppercase tracking-widest">{inv.po}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <i className="fa-solid fa-chevron-right text-[10px] text-brand-muted group-hover:translate-x-1 transition-transform"></i>
-                        </div>
+        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
+            <Header
+                title="Inbound"
+                subtitle="Receiving & Putaway"
+            />
+
+            <div className="px-6 mb-8">
+                <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
+                    {['all', 'pending', 'received'].map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setInboundSubTab(f as any)}
+                            className={`px-6 py-2.5 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all shadow-sm ${inboundSubTab === f ? 'bg-brand-primary text-white shadow-brand-primary/30' : 'bg-app-surface text-app-text-muted border border-app-border hover:bg-app-surface-hover'}`}
+                        >
+                            {f}
+                        </button>
                     ))}
                 </div>
             </div>
+
+            <div className="px-6 space-y-4">
+                {fltInb.map((inv) => (
+                    <div
+                        key={inv.id}
+                        onClick={() => { setActiveInbound(inv); setCurrentView(View.LOCATIONS); }}
+                        className="ios-card p-6 flex justify-between items-center active:scale-[0.98] transition-all cursor-pointer group hover:border-black/10"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-colors ${inv.status === 'completed' ? 'bg-brand-success/10 text-brand-success' : 'bg-brand-blue/10 text-brand-blue'}`}>
+                                <i className="fa-solid fa-truck-ramp-box"></i>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-app-text text-lg mb-1 leading-tight">{inv.vendor}</h4>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-semibold bg-black/5 text-app-text-muted px-2 py-1 rounded-lg uppercase tracking-wider">{inv.id}</span>
+                                    <span className="text-[10px] font-semibold text-app-text-muted uppercase tracking-wider">{inv.po}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                            <div className={`w-2.5 h-2.5 rounded-full ${inv.status === 'completed' ? 'bg-brand-success' : 'bg-brand-blue'} ring-4 ring-app-bg shadow-sm`}></div>
+                            <i className="fa-solid fa-chevron-right text-[10px] text-app-text-muted group-hover:text-app-text transition-colors"></i>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
         </div>
     );
 };
+
+

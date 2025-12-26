@@ -8,8 +8,7 @@ export enum View {
     PART_DETAIL = 'part-detail',
     MO_DETAIL = 'mo-detail',
     LOCATIONS = 'locations',
-    MOVE_STOCK = 'move-stock',
-    QUICK_RELOCATE = 'quick-relocate'
+    MOVE_STOCK = 'move-stock'
 }
 
 export interface Activity {

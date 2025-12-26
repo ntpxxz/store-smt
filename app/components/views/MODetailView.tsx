@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, MO } from '@/lib/types';
+import { Header } from '@/app/components/ui/Header';
 
 interface MODetailViewProps {
     activeMO: MO;
@@ -15,27 +16,40 @@ export const MODetailView: React.FC<MODetailViewProps> = ({ activeMO, setActiveM
     const totParts = activeMO.parts.length;
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter">
-            <div className="px-6 py-4 sticky top-0 glass z-20 flex items-center gap-4 border-b border-app-border text-app-text">
-                <button onClick={() => setCurrentView(View.PICKING)} className="w-10 h-10 rounded-ios-sm bg-app-bg flex items-center justify-center border border-app-border active:bg-app-surface-hover transition-colors"><i className="fa-solid fa-arrow-left"></i></button>
-                <div><h3 className="font-bold text-[10px] text-brand-muted uppercase tracking-widest">Order Checklist</h3><h2 className="font-bold text-lg">MO #{activeMO.id}</h2></div>
-            </div>
+        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-24 page-enter bg-app-bg">
+            <Header
+                title={`MO #${activeMO.id}`}
+                subtitle="Order Checklist"
+                onBack={() => setCurrentView(View.PICKING)}
+            />
+
             <div className="p-6">
-                <div className="ios-card p-6 mb-8 relative overflow-hidden text-app-text">
-                    <div className="flex justify-between mb-4"><span className="text-xs text-brand-muted font-bold uppercase tracking-widest">Product</span><span className="text-sm font-bold">{activeMO.description}</span></div>
-                    <div className="mt-6 space-y-2.5">
-                        <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-brand-muted"><span>Progress</span><span className="text-brand-primary">{activeMO.progress}%</span></div>
-                        <div className="w-full bg-app-bg h-2 rounded-full overflow-hidden border border-app-border"><div className={`h-full transition-all duration-500 bg-brand-primary`} style={{ width: `${activeMO.progress}%` }}></div></div>
+                <div className="ios-card p-8 mb-8 relative overflow-hidden">
+                    <div className="flex justify-between mb-5">
+                        <span className="text-[10px] text-app-text-muted font-semibold uppercase tracking-wider">Product</span>
+                        <span className="text-sm font-bold text-app-text">{activeMO.description}</span>
+                    </div>
+                    <div className="mt-8 space-y-3">
+                        <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-app-text-muted">
+                            <span>Progress</span>
+                            <span className="text-brand-primary font-bold">{activeMO.progress}%</span>
+                        </div>
+                        <div className="w-full bg-black/5 h-2.5 rounded-full overflow-hidden border border-app-border">
+                            <div className={`h-full transition-all duration-500 bg-brand-primary shadow-[0_0_10px_rgba(124,58,237,0.2)]`} style={{ width: `${activeMO.progress}%` }}></div>
+                        </div>
                     </div>
                 </div>
-                <div className="space-y-4 mb-8">
+
+                <div className="space-y-4 mb-10">
                     {activeMO.parts.map((part, idx) => (
-                        <div key={part.id} className={`ios-card p-5 flex items-center justify-between transition-all ${part.picked ? 'opacity-50 bg-brand-success/5' : ''}`}>
-                            <div className="flex items-center gap-5 flex-1 min-w-0 text-app-text">
-                                <div className={`w-14 h-14 rounded-ios-sm flex items-center justify-center font-bold ${part.picked ? 'bg-brand-success text-white' : 'bg-app-bg text-brand-muted border border-app-border'}`}>{part.picked ? <i className="fa-solid fa-check"></i> : idx + 1}</div>
+                        <div key={part.id} className={`ios-card p-5 flex items-center justify-between transition-all ${part.picked ? 'opacity-50 border-brand-success/20' : ''}`}>
+                            <div className="flex items-center gap-5 flex-1 min-w-0">
+                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-lg transition-all ${part.picked ? 'bg-brand-success text-white shadow-lg shadow-brand-success/20' : 'bg-black/5 text-app-text-muted border border-app-border'}`}>
+                                    {part.picked ? <i className="fa-solid fa-check"></i> : idx + 1}
+                                </div>
                                 <div className="min-w-0">
-                                    <h4 className="font-bold text-base truncate mb-0.5">{part.name}</h4>
-                                    <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{part.id}</p>
+                                    <h4 className="font-bold text-app-text text-lg leading-tight truncate mb-1">{part.name}</h4>
+                                    <p className="text-[10px] text-app-text-muted font-semibold uppercase tracking-wider">{part.id}</p>
                                 </div>
                             </div>
                             {!part.picked && (
@@ -51,7 +65,7 @@ export const MODetailView: React.FC<MODetailViewProps> = ({ activeMO, setActiveM
                                             message: `Scanned code "${scanned}" is not part of this manufacturing order. Please verify the physical component and try again.`
                                         })
                                     )}
-                                    className="w-12 h-12 rounded-ios-sm bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shadow-sm active:scale-90 transition-transform"
+                                    className="w-14 h-14 rounded-2xl gradient-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 active:scale-[0.9] transition-all"
                                 >
                                     <i className="fa-solid fa-barcode text-xl"></i>
                                 </button>
@@ -59,8 +73,18 @@ export const MODetailView: React.FC<MODetailViewProps> = ({ activeMO, setActiveM
                         </div>
                     ))}
                 </div>
-                <button disabled={pkdCount < totParts} onClick={() => { setActiveMO(null); setCurrentView(View.PICKING) }} className={`w-full py-4.5 rounded-ios-sm font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg ${pkdCount === totParts ? 'bg-brand-primary text-white shadow-brand-primary/20' : 'bg-app-surface text-brand-muted cursor-not-allowed border border-app-border'}`}>Complete Order</button>
+
+                <button
+                    disabled={pkdCount < totParts}
+                    onClick={() => { setActiveMO(null); setCurrentView(View.PICKING) }}
+                    className={`w-full py-6 rounded-[2rem] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-3 transition-all shadow-2xl ${pkdCount === totParts ? 'gradient-primary text-white shadow-brand-primary/30' : 'bg-black/5 text-app-text-muted cursor-not-allowed shadow-none'}`}
+                >
+                    Complete Order <i className="fa-solid fa-circle-check text-sm"></i>
+                </button>
+
             </div>
         </div>
     );
 };
+
+

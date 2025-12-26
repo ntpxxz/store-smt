@@ -9,8 +9,8 @@ export const StockChart: React.FC<StockChartProps> = ({ part }) => {
     const history = [...(part.movements || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     if (history.length < 2) return (
-        <div className="mt-8 bg-app-surface border border-app-border rounded-[15px] p-6 text-center">
-            <p className="text-xs text-brand-muted font-bold uppercase tracking-widest">Insufficient trend data</p>
+        <div className="mt-8 bg-black/5 border border-black/5 rounded-[15px] p-6 text-center">
+            <p className="text-xs text-app-text-muted font-semibold uppercase tracking-wider">Insufficient trend data</p>
         </div>
     );
 
@@ -49,27 +49,27 @@ export const StockChart: React.FC<StockChartProps> = ({ part }) => {
     const areaD = `${pathD} L ${getX(plotPoints.length - 1)} ${height} L ${getX(0)} ${height} Z`;
 
     return (
-        <div className="mt-8 bg-app-surface border border-app-border rounded-[15px] p-6 text-left relative overflow-hidden group">
+        <div className="mt-8 bg-black/5 border border-app-border rounded-[15px] p-6 text-left relative overflow-hidden group">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-2 text-brand-muted">
+                <h3 className="font-semibold text-[10px] uppercase tracking-wider flex items-center gap-2 text-app-text-muted">
                     <i className="fa-solid fa-chart-line text-brand-primary"></i>
                     Stock Trends
                 </h3>
-                <span className="text-[10px] font-black text-brand-success uppercase tracking-widest">+12% vs LY</span>
+                <span className="text-[10px] font-bold text-brand-success uppercase tracking-wider">+12% vs LY</span>
             </div>
 
             <div className="relative w-full h-[120px]">
                 <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
                     <defs>
                         <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#0046FF" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#0046FF" stopOpacity="0" />
+                            <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.2" />
+                            <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
                         </linearGradient>
                     </defs>
 
                     {/* Horizontal Grid Lines */}
-                    <line x1={paddingX} y1={getY(maxVal)} x2={width - paddingX} y2={getY(maxVal)} stroke="var(--color-app-border)" strokeWidth="1" strokeDasharray="4 4" />
-                    <line x1={paddingX} y1={getY(minVal)} x2={width - paddingX} y2={getY(minVal)} stroke="var(--color-app-border)" strokeWidth="1" strokeDasharray="4 4" />
+                    <line x1={paddingX} y1={getY(maxVal)} x2={width - paddingX} y2={getY(maxVal)} stroke="rgba(0,0,0,0.05)" strokeWidth="1" strokeDasharray="4 4" />
+                    <line x1={paddingX} y1={getY(minVal)} x2={width - paddingX} y2={getY(minVal)} stroke="rgba(0,0,0,0.05)" strokeWidth="1" strokeDasharray="4 4" />
 
                     {/* Area Fill */}
                     <path d={areaD} fill="url(#chartFill)" />
@@ -78,11 +78,11 @@ export const StockChart: React.FC<StockChartProps> = ({ part }) => {
                     <path
                         d={pathD}
                         fill="none"
-                        stroke="#0046FF"
+                        stroke="#7C3AED"
                         strokeWidth="3"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="drop-shadow-[0_4px_10px_rgba(0,70,255,0.3)]"
+                        className="drop-shadow-[0_4px_10px_rgba(124,58,237,0.2)]"
                     />
 
                     {/* Points */}
@@ -92,8 +92,8 @@ export const StockChart: React.FC<StockChartProps> = ({ part }) => {
                             cx={getX(i)}
                             cy={getY(p.val)}
                             r="4"
-                            fill="var(--color-app-surface)"
-                            stroke="#0046FF"
+                            fill="#FFFFFF"
+                            stroke="#7C3AED"
                             strokeWidth="2"
                         />
                     ))}
@@ -103,10 +103,12 @@ export const StockChart: React.FC<StockChartProps> = ({ part }) => {
             <div className="flex justify-between mt-4 px-2">
                 {plotPoints.map((p, i) => (
                     <div key={i} className="flex flex-col items-center">
-                        <span className="text-[8px] font-black text-brand-muted uppercase tracking-tighter">{p.date}</span>
+                        <span className="text-[8px] font-semibold text-app-text-muted uppercase tracking-wider">{p.date}</span>
                     </div>
                 ))}
             </div>
         </div>
     );
 };
+
+

@@ -27,55 +27,55 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-[#fafafa] p-6 font-sans">
-            <div className="w-full max-w-[400px] bg-white rounded-[30px] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-zinc-100 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-400"></div>
-                <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-blue-600 rounded-[22px] flex items-center justify-center mx-auto mb-6 shadow-[0_10px_20px_rgba(37,99,235,0.2)] transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                        <i className="fa-solid fa-warehouse text-white text-4xl"></i>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 font-sans">
+            <div className="w-full max-w-[420px] ios-card p-12 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary"></div>
+                <div className="text-center mb-12">
+                    <div className="w-24 h-24 gradient-primary rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-brand-primary/30 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                        <i className="fa-solid fa-warehouse text-white text-5xl"></i>
                     </div>
-                    <h1 className="text-3xl font-black text-zinc-900 tracking-tighter">Warehouse OS</h1>
-                    <p className="text-zinc-400 text-sm font-bold uppercase tracking-widest mt-2">Next-Gen Logistics</p>
+                    <h1 className="text-4xl font-bold text-app-text leading-none">Warehouse OS</h1>
+                    <p className="text-app-text-muted text-[10px] font-semibold uppercase tracking-wider mt-4">Next-Gen Logistics</p>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Access ID</label>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    <div className="space-y-3">
+                        <label className="block text-[10px] font-semibold text-app-text-muted uppercase tracking-wider ml-1">Access ID</label>
                         <div className="relative">
-                            <i className="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300 text-sm"></i>
+                            <i className="fa-solid fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-app-text-muted text-base"></i>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-zinc-50 border border-zinc-100 rounded-[15px] py-4 pl-12 pr-4 text-zinc-900 font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all placeholder:text-zinc-300"
+                                className="w-full bg-black/5 border border-app-border rounded-2xl py-5 pl-14 pr-5 text-app-text font-medium focus:outline-none focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary/30 transition-all placeholder:text-app-text/20"
                                 placeholder="admin@warehouse.os"
                                 required
                             />
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Security Key</label>
+                    <div className="space-y-3">
+                        <label className="block text-[10px] font-semibold text-app-text-muted uppercase tracking-wider ml-1">Security Key</label>
                         <div className="relative">
-                            <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300 text-sm"></i>
+                            <i className="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-app-text-muted text-base"></i>
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-zinc-50 border border-zinc-100 rounded-[15px] py-4 pl-12 pr-4 text-zinc-900 font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 transition-all placeholder:text-zinc-300"
+                                className="w-full bg-black/5 border border-app-border rounded-2xl py-5 pl-14 pr-5 text-app-text font-medium focus:outline-none focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary/30 transition-all placeholder:text-app-text/20"
                                 placeholder="••••••••"
                                 required
                             />
                         </div>
                     </div>
                     {error && (
-                        <div className="bg-red-50 border border-red-100 p-4 rounded-[15px] flex items-center gap-3 animate-shake">
-                            <i className="fa-solid fa-circle-exclamation text-red-500"></i>
-                            <p className="text-red-600 text-xs font-black uppercase tracking-wider">{error}</p>
+                        <div className="bg-brand-error/10 border border-brand-error/20 p-5 rounded-2xl flex items-center gap-4 animate-shake">
+                            <i className="fa-solid fa-circle-exclamation text-brand-error text-lg"></i>
+                            <p className="text-brand-error text-[10px] font-semibold uppercase tracking-wider leading-relaxed">{error}</p>
                         </div>
                     )}
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-zinc-900 hover:bg-black text-white py-5 rounded-[18px] font-black text-lg shadow-2xl transition-all active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-3 group"
+                        className="w-full gradient-primary text-white py-6 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-2xl shadow-brand-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-4 group"
                     >
                         {loading ? (
                             <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -84,18 +84,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         )}
                     </button>
                 </form>
-                <div className="mt-10 pt-8 border-t border-zinc-50 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Server Online</span>
+                <div className="mt-12 pt-10 border-t border-app-border flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 bg-brand-success rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                        <span className="text-[10px] font-semibold text-app-text-muted uppercase tracking-wider">Server Online</span>
                     </div>
-                    <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">v4.2.0-PRO</span>
+                    <span className="text-[10px] font-semibold text-app-text-muted/40 uppercase tracking-wider">v4.2.0-PRO</span>
                 </div>
             </div>
-            <div className="mt-8 flex items-center gap-4 opacity-30">
-                <i className="fa-solid fa-shield-halved text-zinc-400"></i>
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Encrypted Session</p>
+            <div className="mt-10 flex items-center gap-4 opacity-30">
+                <i className="fa-solid fa-shield-halved text-app-text"></i>
+                <p className="text-[10px] font-semibold text-app-text uppercase tracking-widest">Encrypted Session</p>
             </div>
         </div>
     );
 };
+
+
+

@@ -75,33 +75,33 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
     };
 
     return (
-        <div className="absolute inset-0 bg-black/95 z-[100] flex flex-col animate-fade-in">
-            <div className="flex items-center justify-between p-8 text-white">
-                <button onClick={onClose} className="w-12 h-12 flex items-center justify-center rounded-[18px] bg-white/10 backdrop-blur-md border border-white/10 active:scale-90 transition-transform">
+        <div className="absolute inset-0 bg-white/95 z-[100] flex flex-col animate-fade-in">
+            <div className="flex items-center justify-between p-8 text-app-text">
+                <button onClick={onClose} className="w-12 h-12 flex items-center justify-center rounded-[18px] bg-black/5 backdrop-blur-md border border-black/5 active:scale-90 transition-transform">
                     <i className="fa-solid fa-xmark text-xl"></i>
                 </button>
                 <div className="text-center">
-                    <h3 className="text-xl font-black tracking-tight">{title}</h3>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">{subtitle}</p>
+                    <h3 className="text-xl font-bold">{title}</h3>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-app-text-muted mt-1">{subtitle}</p>
                 </div>
                 <div className="w-12"></div>
             </div>
 
             <div className="flex-1 relative flex items-center justify-center p-8">
-                <div className="relative w-full aspect-square max-w-[340px] bg-zinc-900 rounded-[40px] border-4 border-white/10 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]" onClick={handleTriggerScan}>
+                <div className="relative w-full aspect-square max-w-[340px] bg-zinc-100 rounded-[40px] border-4 border-black/5 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.05)]" onClick={handleTriggerScan}>
                     {!cameraError ? (
-                        <video ref={videoRef} autoPlay playsInline muted className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${status !== 'idle' ? 'opacity-20' : 'opacity-40'}`} />
+                        <video ref={videoRef} autoPlay playsInline muted className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${status !== 'idle' ? 'opacity-20' : 'opacity-60'}`} />
                     ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10 bg-zinc-800/50">
-                            <i className="fa-solid fa-video-slash text-white/20 text-4xl mb-4"></i>
-                            <p className="text-[10px] text-white/30 uppercase font-black tracking-[0.2em] leading-relaxed">System Camera Offline<br />Tap to simulation scan</p>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10 bg-zinc-200/50">
+                            <i className="fa-solid fa-video-slash text-app-text-muted text-4xl mb-4"></i>
+                            <p className="text-[10px] text-app-text-muted uppercase font-semibold tracking-wider leading-relaxed">System Camera Offline<br />Tap to simulation scan</p>
                         </div>
                     )}
 
-                    <div className="absolute inset-0 border-[50px] border-black/60 pointer-events-none"></div>
+                    <div className="absolute inset-0 border-[50px] border-white/60 pointer-events-none"></div>
 
                     {status === 'idle' && (
-                        <div className="absolute left-10 right-10 h-1 bg-brand-primary shadow-[0_0_30px_rgba(37,99,235,0.8)] animate-scan z-20 rounded-full"></div>
+                        <div className="absolute left-10 right-10 h-1 bg-brand-primary shadow-[0_0_30px_rgba(124,58,237,0.5)] animate-scan z-20 rounded-full"></div>
                     )}
 
                     {status === 'success' && (
@@ -109,7 +109,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
                             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl animate-bounce">
                                 <i className="fa-solid fa-check text-5xl text-brand-success"></i>
                             </div>
-                            <span className="text-white font-black text-xl uppercase tracking-[0.2em] mt-6">Match Found</span>
+                            <span className="text-white font-bold text-xl uppercase tracking-wider mt-6">Match Found</span>
                         </div>
                     )}
 
@@ -118,7 +118,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
                             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl animate-shake">
                                 <i className="fa-solid fa-xmark text-5xl text-brand-error"></i>
                             </div>
-                            <span className="text-white font-black text-xl uppercase tracking-[0.2em] mt-6">SKU Mismatch</span>
+                            <span className="text-white font-bold text-xl uppercase tracking-wider mt-6">SKU Mismatch</span>
                         </div>
                     )}
 
@@ -127,25 +127,26 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onClose, onScan,
                             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl">
                                 <i className="fa-solid fa-clone text-5xl text-brand-orange"></i>
                             </div>
-                            <span className="text-white font-black text-xl uppercase tracking-[0.2em] mt-6">Already Scanned</span>
+                            <span className="text-white font-bold text-xl uppercase tracking-wider mt-6">Already Scanned</span>
                         </div>
                     )}
 
                     {/* Corner Brackets */}
-                    <div className="absolute top-12 left-12 w-10 h-10 border-t-4 border-l-4 border-white/40 rounded-tl-lg"></div>
-                    <div className="absolute top-12 right-12 w-10 h-10 border-t-4 border-r-4 border-white/40 rounded-tr-lg"></div>
-                    <div className="absolute bottom-12 left-12 w-10 h-10 border-b-4 border-l-4 border-white/40 rounded-bl-lg"></div>
-                    <div className="absolute bottom-12 right-12 w-10 h-10 border-b-4 border-r-4 border-white/40 rounded-br-lg"></div>
+                    <div className="absolute top-12 left-12 w-10 h-10 border-t-4 border-l-4 border-black/20 rounded-tl-lg"></div>
+                    <div className="absolute top-12 right-12 w-10 h-10 border-t-4 border-r-4 border-black/20 rounded-tr-lg"></div>
+                    <div className="absolute bottom-12 left-12 w-10 h-10 border-b-4 border-l-4 border-black/20 rounded-bl-lg"></div>
+                    <div className="absolute bottom-12 right-12 w-10 h-10 border-b-4 border-r-4 border-black/20 rounded-br-lg"></div>
                 </div>
             </div>
 
             <div className="p-12 text-center">
-                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em] mb-6">Position barcode within frame</p>
+                <p className="text-app-text-muted text-[10px] font-semibold uppercase tracking-widest mb-6">Position barcode within frame</p>
                 <div className="flex justify-center gap-6">
-                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white/30"><i className="fa-solid fa-bolt-lightning"></i></div>
-                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white/30"><i className="fa-solid fa-magnifying-glass-plus"></i></div>
+                    <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-app-text-muted"><i className="fa-solid fa-bolt-lightning"></i></div>
+                    <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-app-text-muted"><i className="fa-solid fa-magnifying-glass-plus"></i></div>
                 </div>
             </div>
         </div>
+
     );
 };
