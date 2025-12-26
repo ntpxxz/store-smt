@@ -12,6 +12,8 @@ import { Navigation } from '@/app/components/layout/Navigation';
 import { ErrorModal } from '@/app/components/ui/ErrorModal';
 import { SystemAlert } from '@/app/components/ui/SystemAlert';
 import { BarcodeScanner } from '@/app/components/ui/BarcodeScanner';
+import QueueDashboard from '@/app/components/ui/QueueDashboard';
+import { getPendingCount } from '@/lib/offline';
 
 // Views
 import { LoginScreen } from '@/app/components/views/LoginScreen';
@@ -77,6 +79,9 @@ const App: React.FC = () => {
   // Error State
   const [prominentError, setProminentError] = useState<{ title: string; message: string } | null>(null);
 
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
   // Initial Auth Check
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -85,6 +90,61 @@ const App: React.FC = () => {
       // Ideally we would validate the token here or fetch user profile
       setUser({ name: 'Admin User', role: 'ADMIN' }); // Mock for now or fetch from API
     }
+  }, []);
+
+  // Poll pending queue count
+  useEffect(() => {
+    let mounted = true;
+    const refresh = async () => {
+      try {
+        const c = await getPendingCount();
+        if (mounted) setPendingCount(c);
+      } catch (e) {
+        // ignore
+      }
+    };
+    void refresh();
+    const iv = setInterval(() => void refresh(), 3000);
+
+    // Listen to offline queue events to show immediate toasts
+    const onQueued = (ev: Event) => {
+      const detail: any = (ev as CustomEvent).detail;
+      setSysAlert({ message: `Operation queued: ${detail.method} ${detail.path}`, type: 'success' });
+      void refresh();
+    };
+
+    const onSyncSuccess = (ev: Event) => {
+      const detail: any = (ev as CustomEvent).detail;
+      setSysAlert({ message: `Synced: ${detail.path}`, type: 'success' });
+      void refresh();
+    };
+
+    const onSyncFailure = (ev: Event) => {
+      const detail: any = (ev as CustomEvent).detail;
+      setSysAlert({ message: `Sync failed: ${detail.path} (status ${detail.status})`, type: 'error' });
+      void refresh();
+    };
+
+    const onConflict = (ev: Event) => {
+      const detail: any = (ev as CustomEvent).detail;
+      setSysAlert({ message: `Conflict syncing ${detail.path}. Please resolve in queue.`, type: 'error' });
+      setQueueOpen(true);
+      void refresh();
+    };
+
+    const onSyncError = (ev: Event) => {
+      const detail: any = (ev as CustomEvent).detail;
+      setSysAlert({ message: `Sync error: ${detail.error}`, type: 'error' });
+      void refresh();
+    };
+
+    window.addEventListener('offline:queued', onQueued as EventListener);
+    window.addEventListener('offline:sync:success', onSyncSuccess as EventListener);
+    window.addEventListener('offline:sync:failure', onSyncFailure as EventListener);
+    window.addEventListener('offline:conflict', onConflict as EventListener);
+    window.addEventListener('offline:sync:error', onSyncError as EventListener);
+
+    return () => { mounted = false; clearInterval(iv); window.removeEventListener('offline:queued', onQueued as EventListener); window.removeEventListener('offline:sync:success', onSyncSuccess as EventListener); window.removeEventListener('offline:sync:failure', onSyncFailure as EventListener); window.removeEventListener('offline:conflict', onConflict as EventListener); window.removeEventListener('offline:sync:error', onSyncError as EventListener); };
   }, []);
 
   const handleLogin = (token: string, userData: any) => {
@@ -104,15 +164,25 @@ const App: React.FC = () => {
   const handleExecuteTransfer = async () => {
     if (!activePart) return;
     try {
-      await api.inventory.transfer(activePart.id, transferQty, `Aisle ${destAisle}, Bin ${destBin}`);
+      const res = await api.inventory.transfer(activePart.id, transferQty, `Aisle ${destAisle}, Bin ${destBin}`);
+
+      // If queued, do optimistic update and notify user
+      if (res && (res as any).queued) {
+        setInventory(prev => prev.map(p => p.id === activePart.id ? { ...p, qty: p.qty - transferQty } : p));
+        await fetchData();
+        addActivity('move', 'Stock Transfer (queued)', `Moved ${transferQty} ${activePart.unit} of ${activePart.sku} to ${destAisle}-${destBin}`);
+        setSysAlert({ message: 'Stock transfer queued (offline). It will sync when online.', type: 'success' });
+        setCurrentView(View.PART_DETAIL);
+        return;
+      }
+
+      // Normal success flow
       setInventory(prev => prev.map(p => {
         if (p.id === activePart.id) {
-          return { ...p, qty: p.qty - transferQty }; // Simplified local update
+          return { ...p, qty: p.qty - transferQty };
         }
         return p;
       }));
-      // In a real app, we'd also update the destination part or create a new one
-      // For now, we'll just refresh data
       await fetchData();
 
       addActivity('move', 'Stock Transfer', `Moved ${transferQty} ${activePart.unit} of ${activePart.sku} to ${destAisle}-${destBin}`);
@@ -126,16 +196,28 @@ const App: React.FC = () => {
   const handlePickPart = async (moId: string, partId: string) => {
     closeScanner();
     try {
-      await api.mos.pick(moId, partId);
-      setMoList(prev => prev.map(m => {
-        if (m.id === moId) {
-          const updatedParts = m.parts.map(p => p.id === partId ? { ...p, picked: true } : p);
-          const progress = Math.round((updatedParts.filter(p => p.picked).length / updatedParts.length) * 100);
-          return { ...m, parts: updatedParts, progress };
-        }
-        return m;
-      }));
-      setSysAlert({ message: 'Component verified & picked', type: 'success' });
+      const res = await api.mos.pick(moId, partId);
+
+      if (res && (res as any).queued) {
+        // Apply optimistic local update
+        setMoList(prev => prev.map(m => {
+          if (m.id === moId) {
+            const updatedParts = m.parts.map(p => p.id === partId ? { ...p, picked: true } : p);
+            const progress = Math.round((updatedParts.filter(p => p.picked).length / updatedParts.length) * 100);
+            return { ...m, parts: updatedParts, progress };
+          }
+          return m;
+        }));
+        setSysAlert({ message: 'Pick recorded offline and queued for sync', type: 'success' });
+        addActivity('pick', `MO #${moId}`, 'Pick queued (offline)');
+        return;
+      }
+
+      const updatedMO = res as any;
+      setMoList(prev => prev.map(mo => mo.id === moId ? updatedMO : mo));
+      if (activeMO?.id === moId) setActiveMO(updatedMO);
+      if ((updatedMO.progress || 0) === 100) addActivity('pick', `MO #${moId}`, 'Order picking completed');
+      setSysAlert({ message: 'Item picked successfully', type: 'success' });
     } catch (err) {
       setProminentError({ title: 'Pick Failed', message: 'Could not record pick. Please try again.' });
     }
@@ -144,7 +226,22 @@ const App: React.FC = () => {
   const handleReceiveItem = async (invoiceId: string, itemId: string, actualQty: number) => {
     closeScanner();
     try {
-      await api.inbound.receive(invoiceId, itemId, actualQty);
+      const res = await api.inbound.receive(invoiceId, itemId, actualQty);
+
+      if (res && (res as any).queued) {
+        // Optimistic update: mark received locally
+        setInbound(prev => prev.map(inv => {
+          if (inv.id === invoiceId) {
+            const updatedItems = inv.items.map(i => i.id === itemId ? { ...i, received: true, receivedQty: actualQty } : i);
+            const allReceived = updatedItems.every(i => i.received);
+            return { ...inv, items: updatedItems, status: allReceived ? 'completed' : inv.status };
+          }
+          return inv;
+        }));
+        setSysAlert({ message: 'Receive recorded offline and queued for sync', type: 'success' });
+        return;
+      }
+
       setInbound(prev => prev.map(inv => {
         if (inv.id === invoiceId) {
           const updatedItems = inv.items.map(i => i.id === itemId ? { ...i, received: true, receivedQty: actualQty } : i);
@@ -161,14 +258,19 @@ const App: React.FC = () => {
 
   const handleAssignPartToBin = async (scannedPartSku: string, targetLocation: string) => {
     closeScanner();
-    // Logic to assign part to bin
-    // This would likely involve an API call to update the part's location
-    // For now, we'll mock it or implement if API supports it
-    // Assuming we find the part by SKU and update it
-    const part = inventory.find(p => p.sku === scannedPartSku);
+    const part = inventory.find(p => p.sku === scannedPartSku || p.id === scannedPartSku);
     if (part) {
       try {
-        await api.inventory.transfer(part.id, part.qty, targetLocation); // Move all to new bin
+        const res = await api.inventory.transfer(part.id, part.qty, targetLocation);
+
+        if (res && (res as any).queued) {
+          // optimistic local update
+          setInventory(prev => prev.map(p => p.id === part.id ? { ...p, location: targetLocation } : p));
+          await fetchData();
+          setSysAlert({ message: `Assignment of ${part.sku} queued (offline)`, type: 'success' });
+          return;
+        }
+
         await fetchData();
         setSysAlert({ message: `Assigned ${part.sku} to ${targetLocation}`, type: 'success' });
       } catch (err) {
@@ -178,8 +280,6 @@ const App: React.FC = () => {
       setProminentError({ title: 'Part Not Found', message: `SKU ${scannedPartSku} not found in inventory.` });
     }
   };
-
-
 
   const handleNavigateToMap = () => {
     setActiveInbound(null);
@@ -233,8 +333,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-0 sm:p-4">
       <div className={`relative w-full h-screen sm:max-w-md sm:h-[844px] sm:rounded-[3rem] bg-app-bg text-app-text font-sans selection:bg-brand-primary/30 sm:shadow-2xl flex flex-col ${darkMode ? 'dark' : ''}`}>
 
-        <StatusBar />
-
+        <StatusBar pendingCount={pendingCount} onOpenQueue={() => setQueueOpen(true)} />
 
         {renderContent()}
 
@@ -260,6 +359,8 @@ const App: React.FC = () => {
             alreadyProcessed={scanContext.alreadyProcessed}
           />
         )}
+
+        {queueOpen && <QueueDashboard onClose={() => setQueueOpen(false)} />}
       </div>
     </div>
   );

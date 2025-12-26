@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
+import { validateRequest, partSchema } from '@/lib/validation';
+import { verifyAuth, createResponse, createErrorResponse, requireRole } from '@/lib/auth';
+import { logger, captureException } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
     // Verify authentication
@@ -21,9 +23,10 @@ export async function GET(request: NextRequest) {
         }
 
         if (search) {
+            const q = search.trim();
             where.OR = [
-                { name: { contains: search, mode: 'insensitive' } },
-                { sku: { contains: search, mode: 'insensitive' } },
+                { name: { contains: q, mode: 'insensitive' } },
+                { sku: { contains: q, mode: 'insensitive' } },
             ];
         }
 
@@ -40,13 +43,15 @@ export async function GET(request: NextRequest) {
 
         return createResponse(parts);
     } catch (error) {
-        console.error('Get inventory error:', error);
+        logger.error({ err: error }, 'Get inventory error');
+        captureException(error, { route: '/api/inventory', action: 'GET' });
         return createErrorResponse('Failed to fetch inventory', 500);
     }
 }
 
 export async function POST(request: NextRequest) {
-    const authResult = await verifyAuth(request);
+    // Require OPERATOR or ADMIN to create parts
+    const authResult = await requireRole(['ADMIN', 'OPERATOR'])(request);
     if ('error' in authResult) {
         return createErrorResponse(authResult.error, authResult.status);
     }
@@ -54,22 +59,43 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
+        // Validate request
+        const validation = validateRequest(partSchema, body);
+        if (!validation.success) {
+            return createErrorResponse(validation.error, 400);
+        }
+
+        const validated = validation.data;
+
+        // Normalize strings
+        const sku = validated.sku.trim();
+        const name = validated.name.trim();
+        const location = validated.location.trim();
+        const icon = validated.icon?.trim?.() || '';
+
+        // Prevent duplicate SKU
+        const existing = await prisma.part.findUnique({ where: { sku } });
+        if (existing) {
+            return createErrorResponse('Part with this SKU already exists', 409);
+        }
+
         const part = await prisma.part.create({
             data: {
-                name: body.name,
-                qty: body.qty,
-                unit: body.unit,
-                status: body.status,
-                icon: body.icon,
-                sku: body.sku,
-                location: body.location,
-                locationStatus: body.locationStatus || 'Available',
+                name,
+                qty: validated.qty,
+                unit: validated.unit,
+                status: validated.status,
+                icon,
+                sku,
+                location,
+                locationStatus: validated.locationStatus || 'Available',
             },
         });
 
         return createResponse(part, 201);
     } catch (error) {
-        console.error('Create part error:', error);
+        logger.error({ err: error }, 'Create part error');
+        captureException(error, { route: '/api/inventory', action: 'POST' });
         return createErrorResponse('Failed to create part', 500);
     }
 }

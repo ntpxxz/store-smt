@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
+import { logger, captureException } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
     const authResult = await verifyAuth(request);
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest) {
 
         return createResponse(invoices);
     } catch (error) {
-        console.error('Get inbound error:', error);
+        logger.error({ err: error }, 'Get inbound error');
+        captureException(error, { route: '/api/inbound', action: 'GET' });
         return createErrorResponse('Failed to fetch inbound invoices', 500);
     }
 }
@@ -59,7 +61,8 @@ export async function POST(request: NextRequest) {
 
         return createResponse(invoice, 201);
     } catch (error) {
-        console.error('Create inbound error:', error);
+        logger.error({ err: error }, 'Create inbound error');
+        captureException(error, { route: '/api/inbound', action: 'POST' });
         return createErrorResponse('Failed to create inbound invoice', 500);
     }
 }

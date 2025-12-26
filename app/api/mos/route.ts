@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { verifyAuth, createResponse, createErrorResponse } from '@/lib/auth';
+import { validateRequest, productionOrderSchema } from '@/lib/validation';
+import { verifyAuth, createResponse, createErrorResponse, requireRole } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
     const authResult = await verifyAuth(request);
@@ -20,9 +21,10 @@ export async function GET(request: NextRequest) {
         }
 
         if (search) {
+            const q = search.trim();
             where.OR = [
-                { id: { contains: search, mode: 'insensitive' } },
-                { description: { contains: search, mode: 'insensitive' } },
+                { id: { contains: q, mode: 'insensitive' } },
+                { description: { contains: q, mode: 'insensitive' } },
             ];
         }
 
@@ -45,7 +47,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    const authResult = await verifyAuth(request);
+    // Require OPERATOR or ADMIN to create MOs
+    const authResult = await requireRole(['ADMIN', 'OPERATOR'])(request);
     if ('error' in authResult) {
         return createErrorResponse(authResult.error, authResult.status);
     }
@@ -53,16 +56,28 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
+        // Validate request
+        const validation = validateRequest(productionOrderSchema, body);
+        if (!validation.success) {
+            return createErrorResponse(validation.error, 400);
+        }
+
+        const validated = validation.data;
+
+        // Normalize id and description
+        const id = validated.id.trim();
+        const description = validated.description.trim();
+
         const mo = await prisma.productionOrder.create({
             data: {
-                id: body.id,
-                status: body.status,
-                line: body.line,
-                description: body.description,
-                dueTime: body.dueTime,
-                progress: body.progress || 0,
+                id,
+                status: validated.status,
+                line: validated.line.trim(),
+                description,
+                dueTime: validated.dueTime,
+                progress: validated.progress || 0,
                 parts: {
-                    create: body.parts || [],
+                    create: (body.parts || []).map((p: any) => ({ ...p })),
                 },
             },
             include: {

@@ -21,6 +21,24 @@ services:
     command: >
       sh -c "npx prisma migrate deploy && npx prisma db seed && node server.js"
 
+  as400-sync:
+    container_name: warehouse_as400_sync
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - AS400_SYNC_LOOP=true
+      - AS400_SYNC_INTERVAL=300
+      - AS400_SYNC_ENABLED=true
+    networks:
+      - db-net
+      - default
+    depends_on:
+      - web
+    command: >
+      sh -c "npm run as400-sync"
+
 networks:
   db-net:
     external: true
