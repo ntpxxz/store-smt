@@ -230,8 +230,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className={`relative w-full max-w-md h-screen bg-app-bg text-app-text font-sans overflow-hidden selection:bg-brand-primary/30 shadow-2xl ${darkMode ? 'dark' : ''}`}>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-0 sm:p-4">
+      <div className={`relative w-full h-screen sm:max-w-md sm:h-[844px] sm:rounded-[3rem] bg-app-bg text-app-text font-sans selection:bg-brand-primary/30 sm:shadow-2xl flex flex-col ${darkMode ? 'dark' : ''}`}>
 
         <StatusBar />
 

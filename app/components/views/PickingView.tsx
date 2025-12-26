@@ -16,7 +16,7 @@ export const PickingView: React.FC<PickingViewProps> = ({ moList, moFilter, setM
     const srtMO = moList.filter(mo => (moFilter === 'all' || mo.status === moFilter)).filter(mo => mo.id.includes(moSearch) || mo.description.includes(moSearch)).sort((a, b) => (a.status === 'urgent' ? -1 : 1));
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
             <Header
                 title="Picking"
                 subtitle="Production Queue"

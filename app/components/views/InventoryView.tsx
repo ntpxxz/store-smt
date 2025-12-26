@@ -18,7 +18,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ inventory, searchQ
     const filtered = inventory.filter(p => (filter === 'all' || p.status === filter)).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
             <Header
                 title="Inventory"
                 subtitle="Stock Master"

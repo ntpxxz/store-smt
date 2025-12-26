@@ -12,7 +12,7 @@ interface HomeViewProps {
 
 export const HomeView: React.FC<HomeViewProps> = ({ user, moList, aiInsight, activityLog, setCurrentView, setSelectedBin }) => {
     return (
-        <div className="flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
+        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar pb-32 page-enter bg-app-bg">
             <div className="px-6 pt-8 pb-4">
                 <div className="flex justify-between items-center mb-8">
                     <div className="text-app-text">
